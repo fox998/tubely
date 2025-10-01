@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
+	"github.com/fox998/tubely/internal/auth"
 	"github.com/google/uuid"
 )
 

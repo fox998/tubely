@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -10,7 +11,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
+	"github.com/fox998/tubely/internal/auth"
+	"github.com/fox998/tubely/internal/video"
+	_ "github.com/fox998/tubely/internal/video"
 	"github.com/google/uuid"
 )
 
@@ -75,9 +78,21 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	io.Copy(osTempFile, multipartFile)
 	osTempFile.Seek(0, io.SeekStart)
-	// osTempFile.Sync()
 
-	aspectRatio, err := getVideoAspectRatio(osTempFile.Name())
+	processingVideo, err := video.ProcessVideoForFastStart(osTempFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't process video", err)
+		return
+	}
+	defer os.Remove(processingVideo)
+
+	processingVideoBytes, err := os.ReadFile(processingVideo)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't read processed video", err)
+		return
+	}
+
+	aspectRatio, err := video.GetVideoOrientation(osTempFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get video aspect ratio", err)
 		return
@@ -85,13 +100,13 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	awsPutObjKey := fmt.Sprintf("%v/%v.mp4",
 		aspectRatio,
-		videoIDString)
+		uuid.NewString())
 
 	log.Println("putting object with key", awsPutObjKey)
 	awsPutObjParams := s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
 		Key:         &awsPutObjKey,
-		Body:        osTempFile,
+		Body:        bytes.NewReader(processingVideoBytes),
 		ContentType: &mediaType,
 	}
 	_, err = cfg.s3Client.PutObject(r.Context(), &awsPutObjParams)

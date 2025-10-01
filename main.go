@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
+	"github.com/fox998/tubely/internal/database"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/config"
