@@ -115,7 +115,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newDbVideoUrl := fmt.Sprintf("%v,%v", cfg.s3Bucket, awsPutObjKey)
+	newDbVideoUrl := fmt.Sprintf("https://%v/%v", cfg.s3CfDistribution, awsPutObjKey)
 	dbVideo.VideoURL = &newDbVideoUrl
 	dbVideo.UpdatedAt = time.Now()
 	err = cfg.db.UpdateVideo(dbVideo)
@@ -124,10 +124,6 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dbVideoSigned, err := cfg.dbVideoToSignedVideo(dbVideo)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't get signed video", err)
-		return
-	}
-	respondWithJSON(w, http.StatusOK, dbVideoSigned)
+	log.Printf("Updated video url %v\n", newDbVideoUrl)
+	respondWithJSON(w, http.StatusOK, dbVideo)
 }
